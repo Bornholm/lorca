@@ -9,12 +9,15 @@ import (
 
 func main() {
 	// Create UI with basic HTML passed via data URI
-	ui, err := lorca.New("data:text/html,"+url.PathEscape(`
-	<html>
-		<head><title>Hello</title></head>
-		<body><h1>Hello, world!</h1></body>
-	</html>
-	`), "", 480, 320)
+	ui, err := lorca.New(
+		lorca.WithURL("data:text/html,"+url.PathEscape(`
+		<html>
+			<head><title>Hello</title></head>
+			<body><h1>Hello, world!</h1></body>
+		</html>
+		`)),
+		lorca.WithWindowSize(480, 320),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

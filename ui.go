@@ -26,7 +26,7 @@ type ui struct {
 	tmpDir string
 }
 
-var defaultChromeArgs = []string{
+var DefaultChromeArgs = []string{
 	"--disable-background-networking",
 	"--disable-background-timer-throttling",
 	"--disable-backgrounding-occluded-windows",
@@ -49,10 +49,66 @@ var defaultChromeArgs = []string{
 	"--no-first-run",
 	"--no-default-browser-check",
 	"--safebrowsing-disable-auto-update",
-	"--enable-automation",
 	"--password-store=basic",
 	"--use-mock-keychain",
 	"--remote-allow-origins=*",
+}
+
+const DefaultURL = "data:text/html,<html></html>"
+
+type Options struct {
+	URL        string
+	Width      int
+	Height     int
+	ProfileDir string
+	CustomArgs []string
+}
+
+func NewOptions(funcs ...OptionFunc) *Options {
+	opts := &Options{
+		URL:        DefaultURL,
+		CustomArgs: DefaultChromeArgs,
+		Width:      800,
+		Height:     600,
+	}
+	for _, fn := range funcs {
+		fn(opts)
+	}
+
+	return opts
+}
+
+type OptionFunc func(opts *Options)
+
+func WithURL(url string) OptionFunc {
+	return func(opts *Options) {
+		opts.URL = url
+	}
+}
+
+func WithWindowSize(width, height int) OptionFunc {
+	return func(opts *Options) {
+		opts.Width = width
+		opts.Height = height
+	}
+}
+
+func WithCustomArgs(args ...string) OptionFunc {
+	return func(opts *Options) {
+		opts.CustomArgs = args
+	}
+}
+
+func WithAdditionalCustomArgs(additionalCustomArgs ...string) OptionFunc {
+	return func(opts *Options) {
+		opts.CustomArgs = append(opts.CustomArgs, additionalCustomArgs...)
+	}
+}
+
+func WithProfileDir(dir string) OptionFunc {
+	return func(opts *Options) {
+		opts.ProfileDir = dir
+	}
 }
 
 // New returns a new HTML5 UI for the given URL, user profile directory, window
@@ -61,11 +117,13 @@ var defaultChromeArgs = []string{
 // string - a temporary directory is created and it will be removed on
 // ui.Close(). You might want to use "--headless" custom CLI argument to test
 // your UI code.
-func New(url, dir string, width, height int, customArgs ...string) (UI, error) {
-	if url == "" {
-		url = "data:text/html,<html></html>"
-	}
+func New(funcs ...OptionFunc) (UI, error) {
+	opts := NewOptions(funcs...)
+
+	url := opts.URL
+
 	tmpDir := ""
+	dir := opts.ProfileDir
 	if dir == "" {
 		name, err := ioutil.TempDir("", "lorca")
 		if err != nil {
@@ -73,10 +131,10 @@ func New(url, dir string, width, height int, customArgs ...string) (UI, error) {
 		}
 		dir, tmpDir = name, name
 	}
-	args := append(defaultChromeArgs, fmt.Sprintf("--app=%s", url))
+
+	args := append(opts.CustomArgs, fmt.Sprintf("--app=%s", url))
 	args = append(args, fmt.Sprintf("--user-data-dir=%s", dir))
-	args = append(args, fmt.Sprintf("--window-size=%d,%d", width, height))
-	args = append(args, customArgs...)
+	args = append(args, fmt.Sprintf("--window-size=%d,%d", opts.Width, opts.Height))
 	args = append(args, "--remote-debugging-port=0")
 
 	chrome, err := newChromeWithArgs(ChromeExecutable(), args...)
