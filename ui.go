@@ -134,7 +134,11 @@ func New(funcs ...OptionFunc) (UI, error) {
 
 	args := append(opts.CustomArgs, fmt.Sprintf("--app=%s", url))
 	args = append(args, fmt.Sprintf("--user-data-dir=%s", dir))
-	args = append(args, fmt.Sprintf("--window-size=%d,%d", opts.Width, opts.Height))
+
+	if opts.Width != 0 || opts.Height != 0 {
+		args = append(args, fmt.Sprintf("--window-size=%d,%d", opts.Width, opts.Height))
+	}
+
 	args = append(args, "--remote-debugging-port=0")
 
 	chrome, err := newChromeWithArgs(ChromeExecutable(), args...)
